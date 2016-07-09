@@ -142,6 +142,7 @@ export class RelationshipController {
             .then(sendNotFoundError(res));
     };
 
+    //LM: why would it matter to a relationship what kind of party it is? 
     private create = async(req:Request, res:Response) => {
         // TODO support other party types - currently only INDIVIDUAL is supported here
         // TODO how much of this validation should be in the data layer?
@@ -168,6 +169,7 @@ export class RelationshipController {
             'endTimestamp': {
                 in: 'body'
             },
+            //LM: what is the delegate.<stuff> ?
             'delegate.partyType': {
                 in: 'body',
                 matches: {
@@ -251,10 +253,21 @@ export class RelationshipController {
 
     public assignRoutes = (router:Router) => {
 
+        //LM: I note none of these conform to the what is documented in data-types.ts
+        //    I expected just two get APIs, a get with the full rel id, i.e. a delegate & subject party (this is close to 
+        //          but the identifier is a multi part field) 
+        //    & a "list/search" using just one party & a bunch of filter
+        //    
+        //    The invitation code is about a party
+        //   
+        //    /v1/relationship/invitationCode/:invitationCode/accept etc do not comply with standards as there is no "accept" data concept
+        //    instead we should just be doing a PUT with status code of accept/reject... and we respond appropriately  
+        // 
         router.get('/v1/relationship/:identifier',
             security.isAuthenticated,
             this.findByIdentifier);
 
+        //LM: I'd like to discuss this
         router.get('/v1/relationship/invitationCode/:invitationCode',
             security.isAuthenticated,
             this.findPendingByInvitationCodeInDateRange);

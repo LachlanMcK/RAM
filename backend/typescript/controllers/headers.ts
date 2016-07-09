@@ -10,6 +10,7 @@ export class Headers {
     public static IdentityRawIdValue = `${Headers.Prefix}-Identity-RawIdValue`;
     public static IdentityType = `${Headers.Prefix}-IdentityType`;
 
+    //LM: I'm not sure we need to know the party type (I presume this is individual, busines, device).  Do we just need to know the identitifer type?
     public static PartyType = `${Headers.Prefix}-PartyType`;
 
     public static GivenName = `${Headers.Prefix}-GivenName`;

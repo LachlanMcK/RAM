@@ -23,10 +23,12 @@ const _NameModel = NameModel;
 /* tslint:disable:no-unused-variable */
 const _RelationshipAttributeModel = RelationshipAttributeModel;
 
+//LM: why limit this to just relationships?
 const MAX_PAGE_SIZE = 10;
 
 // enums, utilities, helpers ..........................................................................................
 
+//LM: why not use this at the front end as well? Or is it availble to the f/e through statusEnum?
 export class RelationshipStatus extends RAMEnum {
 
     public static Active = new RelationshipStatus('ACTIVE');
@@ -61,6 +63,7 @@ const RelationshipSchema = RAMSchema({
         ref: 'Party',
         required: [true, 'Subject is required']
     },
+    //LM: why not make nicknames optional?  When not supplied just use the party's "default" identity
     subjectNickName: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Name',
@@ -109,6 +112,9 @@ const RelationshipSchema = RAMSchema({
 
 // interfaces .........................................................................................................
 
+//LM: Do we want to store the Party HRef string here (well above in the schema)?
+//LM: I'm happy for the answer to be, no not yet, leave it to optimisation - if required.
+//LM: ...but I wonder if you want a method to do that look-up
 export interface IRelationship extends IRAMObject {
     relationshipType:IRelationshipType;
     subject:IParty;
@@ -130,6 +136,7 @@ export interface IRelationship extends IRAMObject {
 
 export interface IRelationshipModel extends mongoose.Model<IRelationship> {
     findByIdentifier:(id:string) => Promise<IRelationship>;
+    //LM: I don't know why we just find the pending Invitation code.  We can't return this info to the frontend.  
     findPendingByInvitationCodeInDateRange:(invitationCode:string, date:Date) => Promise<IRelationship>;
     search:(subjectIdentityIdValue:string, delegateIdentityIdValue:string, page:number, pageSize:number)
         => Promise<SearchResult<IRelationship>>;
@@ -173,13 +180,21 @@ RelationshipSchema.method('acceptPendingInvitation', async function (acceptingDe
 
         // TODO need to match identity details, validate identity and credentials strengths (not spec'ed out yet)
 
+        //LM: invitation codes may be given to subjects
+        //LM: I'm curious how the relationship was found.  I would have thought the process
+        //LM: would go the other way, find the party with the invitation code, then find the relationships it
+        //LM: participates in.
+
         // mark claimed with timestamp on the temporary delegate identity
         const identities = await IdentityModel.listByPartyId(this.delegate.id);
         for (let identity of identities) {
             if (identity.identityTypeEnum() === IdentityType.InvitationCode &&
                 identity.invitationCodeStatusEnum() === IdentityInvitationCodeStatus.Pending) {
+                //LM: why set the status to the status's name and not just the code?
                 identity.invitationCodeStatus = IdentityInvitationCodeStatus.Claimed.name;
                 identity.invitationCodeClaimedTimestamp = new Date();
+                //LM: the user claiming the code may already have a party record, so need to move the invitation code to their identity
+                //LM: and re-point this relationship to that party and destroy the temporary party. 
                 await identity.save();
             }
         }
@@ -209,6 +224,7 @@ RelationshipSchema.method('rejectPendingInvitation', async function () {
 
         // as relationship doesn't have a pointer to the identity, this rejects all invitation identities
         // associated with the temporary delegate (there should only be one)
+        //LM: see comments against accepting invitaiton code
         const identities = await IdentityModel.listByPartyId(this.delegate.id);
         for (let identity of identities) {
             if (identity.identityTypeEnum() === IdentityType.InvitationCode &&
@@ -230,6 +246,7 @@ RelationshipSchema.method('notifyDelegate', async function (email:string) {
 
     if (this.statusEnum() === RelationshipStatus.Pending) {
 
+        //LM: I don't get this!
         // save email
         // as relationship doesn't have a pointer to the identity, this sets email on all invitation identities
         // associated with the temporary delegate (there should only be one)
@@ -259,6 +276,8 @@ RelationshipSchema.method('notifyDelegate', async function (email:string) {
 
 // static methods .....................................................................................................
 
+//LM: I wouldn't have thought this method would ever get used as there is no way to know the "id" (except as the result of a previous list)
+//LM: --so OK it could be used, but is there any point?  I don't think we should be returning the id to the outside world, so they can't come back with it. 
 RelationshipSchema.static('findByIdentifier', (id:string) => {
     // TODO migrate from _id to another id
     return this.RelationshipModel
@@ -277,6 +296,9 @@ RelationshipSchema.static('findByIdentifier', (id:string) => {
 });
 
 RelationshipSchema.static('findPendingByInvitationCodeInDateRange', async(invitationCode:string, date:Date) => {
+    //LM: this makes sense, except we shouldn't assume the invitation code was given to the delegate.
+    //LM: we might want to remember in the invitation code whether it was given to the subject or delegate
+    //LM: there is no point just finding the IC, we have to do something with it once it is found.
     const identity = await IdentityModel.findPendingByInvitationCodeInDateRange(invitationCode, date);
     if (identity) {
         const delegate = identity.party;
@@ -297,6 +319,7 @@ RelationshipSchema.static('findPendingByInvitationCodeInDateRange', async(invita
     return null;
 });
 
+//LM: OK, I don't understand this mongo stuff, but I would have expected the relationship type as part of the search criteria. 
 RelationshipSchema.static('search', (subjectIdentityIdValue:string, delegateIdentityIdValue:string, page:number, reqPageSize:number) => {
     return new Promise<SearchResult<IRelationship>>(async(resolve, reject) => {
         const pageSize:number = reqPageSize ? Math.min(reqPageSize, MAX_PAGE_SIZE) : MAX_PAGE_SIZE;

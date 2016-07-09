@@ -9,6 +9,7 @@ export class PartyController {
     constructor(private partyModel:IPartyModel) {
     }
 
+    //LM: why not just set findMe to be find by id value?  they are the same execpt for the validation - and why don't we want the validation?
     private findMe = async (req:Request, res:Response) => {
         const identity = res.locals[Headers.Identity];
         const schema = {};

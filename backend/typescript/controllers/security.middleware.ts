@@ -100,6 +100,7 @@ class Security {
         return res.locals[Headers.Identity];
     }
 
+    //LM: this doesn't seem to actually be doing an authentication check?  Or is it the case that Headers is only populated when authenticated?
     public isAuthenticated(req:Request, res:Response, next:() => void) {
         const idValue = res.locals[Headers.IdentityIdValue];
         if (idValue) {

@@ -16,6 +16,9 @@ import {RelationshipAttributeNameModel} from './relationshipAttributeName.model'
 
 export class PartyType extends RAMEnum {
 
+    //LM: I don't believe we should see ABN hardcoded in like this.
+    //LM: I'm not sure why we need to know party type at all.  I understand the UI needs to work out how it should render based on 
+    //LM: ABN lookup vs Name/DOB capture.  But the backend shouldn't care.
     public static ABN = new PartyType('ABN');
     public static Individual = new PartyType('INDIVIDUAL');
 
@@ -45,6 +48,7 @@ const PartySchema = RAMSchema({
 export interface IParty extends IRAMObject {
     partyType:string;
     partyTypeEnum():PartyType;
+    //LM: wouldn't we want to generalise this for everything, hence move to IRAMObject??
     toHrefValue(includeValue:boolean):Promise<HrefValue<DTO>>;
     toDTO():Promise<DTO>;
     addRelationship(dto:RelationshipAddDTO):Promise<IRelationship>;
@@ -61,7 +65,9 @@ PartySchema.method('partyTypeEnum', function () {
     return PartyType.valueOf(this.partyType);
 });
 
+//LM: Does mongoose allow us to specify the return type?
 PartySchema.method('toHrefValue', async function (includeValue:boolean) {
+    //LM: I would have thought a find default party would return a party object (which contains Identities, one of which is default), rather than just return a defaultIdentity
     const defaultIdentity = await IdentityModel.findDefaultByPartyId(this.id);
     if (defaultIdentity) {
         return new HrefValue(
@@ -88,6 +94,17 @@ PartySchema.method('toDTO', async function () {
  * Creates a relationship to a temporary identity (InvitationCode) until the invitiation has been accepted, whereby
  * the relationship will be transferred to the authorised identity.
  */
+//LM:  I felt compelled to add a bit more info
+/**
+ * Creates a relationship to a temporary Party (which can be found using an identity with an InvitationCode), until 
+ * the invitiation has been accepted, whereby either:  
+ * -- the relationship will be transferred to the Party record for the logged on user (if they are already known) or 
+ * -- the temporary Party will be retained as a permanent record for the logged on user (who claims the Relationship with the 
+ *    invitation code) because is new and did not have a party record.  To become a permanent record for the user, the user's 
+ *    credential information will be attached to the Party record.    
+ * party will become the 
+ */
+//LM: I've got to confess, this seems like it should belong in relationship.model.ts rather than here.
 /* tslint:disable:max-func-body-length */
 PartySchema.method('addRelationship', async (dto:RelationshipAddDTO) => {
 
@@ -95,6 +112,8 @@ PartySchema.method('addRelationship', async (dto:RelationshipAddDTO) => {
 
     // lookups
     const relationshipType = await RelationshipTypeModel.findByCodeInDateRange(dto.relationshipType, new Date());
+
+    //LM: in general you can't assume the new party is the delegate.  We want to also allow delegates to invite subjects to relationships.
     const subjectIdentity = await IdentityModel.findByIdValue(dto.subjectIdValue);
 
     // create the temp identity for the invitation code

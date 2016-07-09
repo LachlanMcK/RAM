@@ -10,6 +10,7 @@ export class IdentityController {
     constructor(private identityModel:IIdentityModel) {
     }
 
+    //LM: I'm not sure what this is doing.  I can't see where it does the "find".  I can't see where model comes from.
     private findMe = async (req:Request, res:Response) => {
         const identity = res.locals[Headers.Identity];
         const schema = {};
@@ -49,6 +50,7 @@ export class IdentityController {
             .then(sendNotFoundError(res));
     };
 
+    //LM: I'm not sure what you have in minde for this search.
     private search = async (req:Request, res:Response) => {
         const schema = {
             'page': {
@@ -86,7 +88,8 @@ export class IdentityController {
         router.get('/v1/identity/invitationCode/:invitationCode',
             security.isAuthenticated,
             this.findPendingByInvitationCodeInDateRange);
-
+        
+        //LM: is really a good idea?
         if (conf.devMode) {
             router.get('/v1/identities', this.search);
         }

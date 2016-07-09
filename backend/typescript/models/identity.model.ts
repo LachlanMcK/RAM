@@ -252,6 +252,7 @@ IdentitySchema.pre('validate', function (next:() => void) {
 
 // interfaces .........................................................................................................
 
+//LM: OK, note that this has been flattened.  Not a prob.
 export interface IIdentity extends IRAMObject {
     idValue:string;
     rawIdValue:string;
@@ -281,7 +282,9 @@ export interface IIdentityModel extends mongoose.Model<IIdentity> {
     createFromDTO:(dto:CreateIdentityDTO) => Promise<IIdentity>;
     findByIdValue:(idValue:string) => Promise<IIdentity>;
     findPendingByInvitationCodeInDateRange:(invitationCode:string, date:Date) => Promise<IIdentity>;
+    //LM: why do we need this?
     findDefaultByPartyId:(partyId:string) => Promise<IIdentity>;
+    //LM: why do we need this?
     listByPartyId:(partyId:string) => Promise<IIdentity[]>;
     search:(page:number, pageSize:number) => Promise<SearchResult<IIdentity>>;
 }
@@ -342,6 +345,7 @@ IdentitySchema.static('findByIdValue', (idValue:string) => {
         .findOne({
             idValue: idValue
         })
+        //LM: I can guess what deepPopulate is, but I don't knwo where to find it.
         .deepPopulate([
             'profile.name',
             'profile.sharedSecrets.sharedSecretType',
@@ -377,6 +381,7 @@ IdentitySchema.static('findDefaultByPartyId', (partyId:string) => {
             'profile.sharedSecrets.sharedSecretType',
             'party'
         ])
+        //LM: I don't know what createdAt is
         .sort({createdAt: 1})
         .exec();
 });

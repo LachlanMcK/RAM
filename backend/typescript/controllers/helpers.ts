@@ -17,6 +17,7 @@ export function sendResource<T>(res: Response) {
     };
 }
 
+//LM: As per original discussion with DLoone, I think it is artificial and not helpful to distinguish between a list and a serarch.  There is negligable overhead to treating everything the same.  Treating things differently creates effort & inertia if need to change. 
 export function sendList<T extends HrefValue<U>, U>(res: Response) {
     'use strict';
     return async (results: Promise<T>[]): Promise<T[]> => {
